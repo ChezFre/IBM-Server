@@ -37,7 +37,7 @@ router.post('/upload', upload.single('image'), async (req, res, next) => {
     url: baseUrl + publicPath,
     classifier_ids: ['food']
   }, async (err, response) => {
-      if (err) throw err;
+      if (err) res.sendStatus(500);
   
       await fs.unlink(file.path, (err) => {
       if (err) throw err;
@@ -46,8 +46,6 @@ router.post('/upload', upload.single('image'), async (req, res, next) => {
       return res.json(response);
     });
   })
-
-  return res.sendStatus(500);
 });
 
 module.exports = router;
