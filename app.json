@@ -1,0 +1,9 @@
+{
+  "name": "IBM Visual Communication Server",
+  "repository": "https://github.com/ChezFre/ibm-server",
+  "env": {
+    "IBM_API_KEY": {
+      "description": "API key from IBM for the object recognition library"
+    }
+  }
+}
