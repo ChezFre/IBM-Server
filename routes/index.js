@@ -2,6 +2,8 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const VisualRecognitionV3 = require('watson-developer-cloud/visual-recognition/v3');
+
 
 const router = express.Router();
 
@@ -23,16 +25,29 @@ router.get('/', function(req, res, next) {
 
 router.post('/upload', upload.single('image'), async (req, res, next) => {
   const file = req.file;
-  const publicPath = '/uploads/' + file.filename
+  const baseUrl = req.protocol + "://" + req.headers.host;
+  const publicPath = '/uploads/' + file.filename;
 
-  await fs.unlink(file.path, (err) => {
-    if (err) throw err;
-    console.log(`${file.path} was deleted`);
+  const visualRecognition = new VisualRecognitionV3({
+    version: '2019-08-22',
+    iam_apikey: process.env.IBM_API_KEY
   });
 
-  const baseUrl = req.protocol + "://" + req.headers.host;
+  visualRecognition.classify({
+    url: baseUrl + publicPath,
+    classifier_ids: ['food']
+  }, async (err, response) => {
+      if (err) throw err;
+  
+      await fs.unlink(file.path, (err) => {
+      if (err) throw err;
+        console.log(`${file.path} was deleted`);
+        
+      return res.json(response);
+    });
+  })
 
-  res.json(baseUrl);
+  return res.sendStatus(500);
 });
 
 module.exports = router;
