@@ -1,22 +1,22 @@
 const express = require('express');
-const multer = require('multer');
-const path = require('path');
 const fs = require('fs');
-const VisualRecognitionV3 = require('watson-developer-cloud/visual-recognition/v3');
+const { promisify } = require("util");
 
+const VisualRecognitionV3 = require('watson-developer-cloud/visual-recognition/v3');
 
 const router = express.Router();
 
-const upload = multer({ dest: 'tmp/' });
+const writeFile = promisify(fs.writeFile);
+const unlink = promisify(fs.unlink);
 
-router.get('/', function(req, res, next) {
-  res.status(404).json('Please upload via /upload');
-});
+router.post('/upload', async (req, res) => {
+  const base64Data = req.body.image.replace(/^data:image\/jpeg;base64,/, "");
+  const binaryData = new Buffer(base64Data, 'base64').toString('binary');
+  const path = `tmp/${Date.now()}.jpg`;
 
-router.post('/upload', upload.single('image'), async (req, res, next) => {
-  const { file } = req;
-  const baseUrl = req.protocol + "://" + req.headers.host;
-  const publicPath = '/uploads/' + file.filename;
+  await writeFile(path, binaryData, "binary")
+    .then(() => console.log('file created'))
+    .catch(err => console.log(err))
 
   const visualRecognition = new VisualRecognitionV3({
     version: '2019-08-22',
@@ -24,14 +24,13 @@ router.post('/upload', upload.single('image'), async (req, res, next) => {
   });
 
   const classification = await visualRecognition.classify({
-    images_file: fs.createReadStream(req.file.path),
+    images_file: fs.createReadStream(path),
     classifier_ids: ['food']
   });
-
-  await fs.unlink(file.path, (err) => {
-    if (err) throw err;
-    console.log(`${file.path} was deleted`);
-  });
+  
+  await unlink(path)
+    .then(() => console.log('file deleted'))
+    .catch(err => console.log(err))
 
   res.json(classification);
 });
